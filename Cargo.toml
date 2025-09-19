@@ -1,0 +1,21 @@
+[package]
+name = "incodoc-to-ansi"
+version = "0.1.0"
+edition = "2024"
+authors = ["Cody Bloemhard <codybloemhard@gmail.com>"]
+description = "Convert incodoc to ANSI."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/codybloemhard/incodoc-to-ansi"
+keywords = ["incorporeal", "incodoc", "ansi", "convert"]
+categories = ["accessibility"]
+
+[[example]]
+name = "testbin"
+path = "src/bin.rs"
+
+[dependencies]
+incodoc = "0.5.0"
+
+[dev-dependencies]
+md-to-incodoc = "0.2.1"
