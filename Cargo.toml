@@ -16,6 +16,7 @@ path = "src/bin.rs"
 
 [dependencies]
 incodoc = "0.5.0"
+zen-colour = "1.1.2"
 
 [dev-dependencies]
 md-to-incodoc = "0.2.1"
