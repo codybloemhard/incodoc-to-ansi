@@ -10,6 +10,8 @@ const INPUT: &str =
 This is a test. This is another sentence.
 This is on another line.
 
+[this is a **bold** link](url)
+
 - A | B
   --|--
   0 | 1
@@ -20,9 +22,11 @@ This is on another line.
 
 fn main() {
     let doc = parse_md_to_incodoc(INPUT);
-    let doc = parse(REF_DOC).unwrap();
+    // let doc = parse(REF_DOC).unwrap();
+
+    let mut output = String::new();
+    doc_out(&doc, &mut output);
+    println!("{output}");
+
     println!("{}", doc_to_ansi_string(&doc));
-    // let mut output = String::new();
-    // doc_out(&doc, &mut output);
-    // println!("{output}");
 }

@@ -2,12 +2,27 @@ use incodoc::*;
 
 use zen_colour::*;
 
-use std::fmt::Write;
+use std::mem;
 
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
     pub ps: ParStatus,
     pub modifier: String,
+    pub modifier_stack: Vec<String>,
+}
+
+impl Context {
+    pub fn push_parstat(&mut self, new: &str, output: &mut String) {
+        self.modifier_stack.push(mem::take(&mut self.modifier));
+        self.modifier = new.to_string();
+        *output += &self.modifier;
+    }
+
+    pub fn pop_parstat(&mut self, output: &mut String) {
+        *output += RESET;
+        self.modifier = self.modifier_stack.pop().unwrap_or_default();
+        *output += &self.modifier;
+    }
 }
 
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -22,6 +37,7 @@ pub enum ParStatus {
     Char,
     /// non-text element: code, list, table, image, etc
     Element,
+    Emphasis,
 }
 
 /// Take an incodoc and unparse it to ANSI.
@@ -46,7 +62,10 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
             },
             DocItem::Section(section) => {},
         }
+        *output += "\n\n";
     }
+    output.pop();
+    output.pop();
 }
 
 pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) {
@@ -61,12 +80,25 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
             ParagraphItem::Em(emphasis) => {
                 emphasis_to_ansi(emphasis, c, output);
             },
-            ParagraphItem::Link(link) => {},
+            ParagraphItem::Link(link) => {
+                link_to_ansi(link, c, output);
+            },
             ParagraphItem::Code(code) => {},
             ParagraphItem::List(list) => {},
             ParagraphItem::Table(table) => {},
         }
     }
+}
+
+pub fn link_to_ansi(link: &Link, c: &mut Context, output: &mut String) {
+    c.push_parstat(MAGENTA, output);
+    for item in &link.items {
+        match item {
+            LinkItem::String(text) => text_to_ansi(text, c, output),
+            LinkItem::Em(em) => emphasis_to_ansi(em, c, output),
+        }
+    }
+    c.pop_parstat(output);
 }
 
 pub fn emphasis_to_ansi(em: &Emphasis, c: &mut Context, output: &mut String) {
@@ -78,11 +110,15 @@ pub fn emphasis_to_ansi(em: &Emphasis, c: &mut Context, output: &mut String) {
         (EmType::Deemphasis, EmStrength::Medium) => CROSSED.to_string(),
         (EmType::Deemphasis, EmStrength::Strong) => HIDDEN.to_string(),
     };
-    let _ = write!(output, "{modifier}{}{}", format_text(&em.text, c), c.modifier);
+    *output += &modifier;
+    *output += &format_text(&em.text, c);
+    *output += RESET;
+    *output += &c.modifier;
+    c.ps = ParStatus::Emphasis;
 }
 
 pub fn text_to_ansi(text: &str, c: &mut Context, output: &mut String) {
-    let _ = write!(output, "{}", format_text(text, c));
+    *output += &format_text(text, c);
 }
 
 pub fn format_text(text: &str, c: &mut Context) -> String {
