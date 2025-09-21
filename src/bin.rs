@@ -12,6 +12,13 @@ This is on another line.
 
 [this is a **bold** link](url)
 
+```rust
+let x = 0;
+for i in 0..10 {
+    println!(\"{}\", yay);
+}
+```
+
 - A | B
   --|--
   0 | 1
@@ -24,9 +31,9 @@ fn main() {
     let doc = parse_md_to_incodoc(INPUT);
     // let doc = parse(REF_DOC).unwrap();
 
-    let mut output = String::new();
-    doc_out(&doc, &mut output);
-    println!("{output}");
+    // let mut output = String::new();
+    // doc_out(&doc, &mut output);
+    // println!("{output}");
 
     println!("{}", doc_to_ansi_string(&doc));
 }

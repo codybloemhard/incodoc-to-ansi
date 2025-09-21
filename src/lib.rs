@@ -1,8 +1,9 @@
 use incodoc::*;
 
-use zen_colour::*;
-
 use std::mem;
+
+use zen_colour::*;
+use bat::PrettyPrinter;
 
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
@@ -83,11 +84,49 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
             ParagraphItem::Link(link) => {
                 link_to_ansi(link, c, output);
             },
-            ParagraphItem::Code(code) => {},
+            ParagraphItem::Code(code) => {
+                code_to_ansi(code, c, output);
+            },
             ParagraphItem::List(list) => {},
             ParagraphItem::Table(table) => {},
         }
     }
+}
+
+pub fn code_to_ansi(
+    code: &Result<CodeBlock, CodeIdentError>,
+    c: &mut Context,
+    output: &mut String
+) {
+    *output += RESET;
+    match code {
+        Ok(code) => {
+            let mut temp = String::new();
+            let res = PrettyPrinter::new()
+                .input_from_bytes(code.code.as_bytes())
+                .language(&code.language)
+                .theme("ansi")
+                .print_with_writer(Some(&mut temp));
+            match res {
+                Ok(true) => *output += &temp,
+                Ok(false) => {
+                    *output += "error: bat couldn't render code\n";
+                    *output += &code.code;
+                },
+                Err(error) => {
+                    *output += "error: bat error: ";
+                    *output += &format!("{error}\n");
+                    *output += &code.code;
+                },
+            }
+        },
+        Err(_) => {
+            *output += "error: incodoc code identation error";
+        },
+    }
+    *output += "\n";
+    *output += &c.modifier;
+    c.ps = ParStatus::Element;
 }
 
 pub fn link_to_ansi(link: &Link, c: &mut Context, output: &mut String) {
