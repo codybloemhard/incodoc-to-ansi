@@ -10,6 +10,8 @@ pub struct Context {
     pub ps: ParStatus,
     pub modifier: String,
     pub modifier_stack: Vec<String>,
+    pub indentation: usize,
+    pub indented: usize,
 }
 
 impl Context {
@@ -59,7 +61,9 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
             DocItem::Nav(nav) => {},
             DocItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
+                c.indentation += 2;
                 paragraph_to_ansi(par, c, output);
+                c.indentation -= 2;
             },
             DocItem::Section(section) => {},
         }
@@ -87,10 +91,31 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
             ParagraphItem::Code(code) => {
                 code_to_ansi(code, c, output);
             },
-            ParagraphItem::List(list) => {},
+            ParagraphItem::List(list) => {
+                list_to_ansi(list, c, output);
+            },
             ParagraphItem::Table(table) => {},
         }
     }
+}
+
+pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
+    if c.ps != ParStatus::Element {
+        *output += "\n";
+    }
+    for par in &list.items {
+        indent(c, output);
+        *output += "- ";
+        c.ps = ParStatus::New;
+        c.indentation += 2;
+        c.indented = c.indentation + 2;
+        paragraph_to_ansi(par, c, output);
+        c.indented = 0;
+        c.indentation -= 2;
+        *output += "\n";
+    }
+    output.pop();
+    c.ps = ParStatus::Element;
 }
 
 pub fn code_to_ansi(
@@ -98,32 +123,40 @@ pub fn code_to_ansi(
     c: &mut Context,
     output: &mut String
 ) {
-    *output += RESET;
+    let mut indent_string = String::new();
+    let mut temp = String::new();
+    indent_string += "\n";
+    indent(c, &mut indent_string);
+    temp += &indent_string[1..];
+
     match code {
         Ok(code) => {
-            let mut temp = String::new();
             let res = PrettyPrinter::new()
                 .input_from_bytes(code.code.as_bytes())
                 .language(&code.language)
                 .theme("ansi")
                 .print_with_writer(Some(&mut temp));
             match res {
-                Ok(true) => *output += &temp,
+                Ok(true) => { },
                 Ok(false) => {
-                    *output += "error: bat couldn't render code\n";
-                    *output += &code.code;
+                    temp += "error: bat couldn't render code\n";
+                    temp += &code.code;
                 },
                 Err(error) => {
-                    *output += "error: bat error: ";
-                    *output += &format!("{error}\n");
-                    *output += &code.code;
+                    temp += "error: bat error: ";
+                    temp += &format!("{error}\n");
+                    temp += &code.code;
                 },
             }
         },
         Err(_) => {
-            *output += "error: incodoc code identation error";
+            temp += "error: incodoc code identation error";
         },
     }
+    temp = temp.replace("\n", &indent_string);
+
+    *output += RESET;
+    *output += &temp;
     *output += "\n";
     *output += &c.modifier;
     c.ps = ParStatus::Element;
@@ -164,10 +197,16 @@ pub fn format_text(text: &str, c: &mut Context) -> String {
     let mut res = String::new();
     match c.ps {
         ParStatus::Char => res.push(' '),
-        ParStatus::Element => res.push('\n'),
+        ParStatus::Element => {
+            res.push('\n');
+            c.ps = ParStatus::Newline;
+        },
         _ => { },
     }
     for ch in text.chars() {
+        if c.ps == ParStatus::Newline || c.ps == ParStatus::New {
+            indent(c, &mut res);
+        }
         match ch {
             '\n' => {
                 if c.ps == ParStatus::Whitespace || c.ps == ParStatus::Char {
@@ -193,3 +232,11 @@ pub fn format_text(text: &str, c: &mut Context) -> String {
     }
     res
 }
+
+pub fn indent(c: &mut Context, output: &mut String) {
+    for _ in 0..(c.indentation - c.indented.min(c.indentation)) {
+        *output += " ";
+    }
+    c.indented = 0;
+}
+
