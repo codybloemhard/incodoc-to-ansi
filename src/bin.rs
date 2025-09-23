@@ -25,14 +25,17 @@ for i in 0..10 {
 - test
   test
   test
+- ```rust
+  let x = 0;
+  let y = 1;
+  ```
 - test
-
 - A | B
   --|--
   0 | 1
-- C | D
-  --|--
-  2 | 3
+C | D
+--|--
+2 | 3
 ";
 
 fn main() {

@@ -5,6 +5,10 @@ use std::mem;
 use zen_colour::*;
 use bat::PrettyPrinter;
 
+use term_table::*;
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
+
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
     pub ps: ParStatus,
@@ -94,7 +98,9 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
             ParagraphItem::List(list) => {
                 list_to_ansi(list, c, output);
             },
-            ParagraphItem::Table(table) => {},
+            ParagraphItem::Table(table) => {
+                table_to_ansi(table, c, output);
+            },
         }
     }
 }
@@ -103,6 +109,7 @@ pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
     if c.ps != ParStatus::Element {
         *output += "\n";
     }
+    let old = c.indentation;
     for par in &list.items {
         indent(c, output);
         *output += "- ";
@@ -118,13 +125,48 @@ pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
     c.ps = ParStatus::Element;
 }
 
+pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut String) {
+    let mut max = 0;
+    for row in &table.rows {
+        max = max.max(row.items.len());
+    }
+    let mut t = term_table::Table::builder()
+        .style(TableStyle::thin())
+        .build();
+    for row in &table.rows {
+        let mut r = Row::empty();
+        for item in &row.items {
+            let mut temp = String::new();
+            paragraph_to_ansi(item, &mut Context::default(), &mut temp);
+            r.add_cell(TableCell::new(temp));
+        }
+        t.add_row(r);
+    }
+
+    let mut indent_string_0 = String::new();
+    indent_string_0 += "\n";
+    indent(c, &mut indent_string_0);
+    let mut indent_string_1 = String::new();
+    indent_string_1 += "\n";
+    indent(c, &mut indent_string_1);
+    let mut res = String::new();
+    res += &indent_string_0[1..];
+    res += &t.render();
+    res = res.replace("\n", &indent_string_1);
+
+    *output += RESET;
+    *output += &res;
+    *output += &c.modifier;
+    c.ps = ParStatus::Element;
+}
+
 pub fn code_to_ansi(
     code: &Result<CodeBlock, CodeIdentError>,
     c: &mut Context,
     output: &mut String
 ) {
-    let mut indent_string = String::new();
     let mut temp = String::new();
+    let mut indent_string = String::new();
     indent_string += "\n";
     indent(c, &mut indent_string);
     temp += &indent_string[1..];
@@ -153,6 +195,11 @@ pub fn code_to_ansi(
             temp += "error: incodoc code identation error";
         },
     }
+
+
+    let mut indent_string = String::new();
+    indent_string += "\n";
+    indent(c, &mut indent_string);
     temp = temp.replace("\n", &indent_string);
 
     *output += RESET;

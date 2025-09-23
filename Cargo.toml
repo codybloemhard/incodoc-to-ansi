@@ -18,6 +18,7 @@ path = "src/bin.rs"
 incodoc = "0.5.0"
 zen-colour = "1.1.2"
 bat = { version = "0.25.0", features = ["regex-onig"] }
+term-table = "1.4.0"
 
 [dev-dependencies]
 md-to-incodoc = "0.2.1"
