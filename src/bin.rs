@@ -24,11 +24,22 @@ for i in 0..10 {
   - test
 - test
   test
+  - A | B
+    --|--
+    0 | 1
+  - ```rust
+    let x = 0;
+    let y = 1;
+    ```
+  - A | B
+    --|--
+    0 | 1
   test
 - ```rust
   let x = 0;
   let y = 1;
   ```
+  test
 - test
 - A | B
   --|--
@@ -36,6 +47,8 @@ for i in 0..10 {
 C | D
 --|--
 2 | 3
+
+test line
 ";
 
 fn main() {

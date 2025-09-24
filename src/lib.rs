@@ -30,6 +30,13 @@ impl Context {
         self.modifier = self.modifier_stack.pop().unwrap_or_default();
         *output += &self.modifier;
     }
+
+    pub fn indent(&self, indentation_addition: usize, indented: usize) -> Self {
+        let mut child = self.clone();
+        child.indented = indented + child.indentation;
+        child.indentation += indentation_addition;
+        child
+    }
 }
 
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -65,9 +72,7 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
             DocItem::Nav(nav) => {},
             DocItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
-                c.indentation += 2;
-                paragraph_to_ansi(par, c, output);
-                c.indentation -= 2;
+                paragraph_to_ansi(par, &mut c.indent(2, 0), output);
             },
             DocItem::Section(section) => {},
         }
@@ -106,23 +111,17 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
 }
 
 pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
-    if c.ps != ParStatus::Element {
-        *output += "\n";
-    }
-    let old = c.indentation;
     for par in &list.items {
-        indent(c, output);
+        if c.ps != ParStatus::Newline {
+            *output += "\n";
+            c.ps = ParStatus::Newline;
+        }
+        indent(0, c, output);
         *output += "- ";
         c.ps = ParStatus::New;
-        c.indentation += 2;
-        c.indented = c.indentation + 2;
-        paragraph_to_ansi(par, c, output);
-        c.indented = 0;
-        c.indentation -= 2;
-        *output += "\n";
+        paragraph_to_ansi(par, &mut c.indent(2, 2), output);
+        c.ps = ParStatus::Element;
     }
-    output.pop();
-    c.ps = ParStatus::Element;
 }
 
 pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut String) {
@@ -145,15 +144,22 @@ pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut Strin
 
     let mut indent_string_0 = String::new();
     indent_string_0 += "\n";
-    indent(c, &mut indent_string_0);
+    indent(0, c, &mut indent_string_0);
     let mut indent_string_1 = String::new();
     indent_string_1 += "\n";
-    indent(c, &mut indent_string_1);
+    indent(0, c, &mut indent_string_1);
     let mut res = String::new();
     res += &indent_string_0[1..];
     res += &t.render();
     res = res.replace("\n", &indent_string_1);
+    for _ in 0..indent_string_1.len() {
+        res.pop();
+    }
 
+    if c.ps != ParStatus::Newline && c.ps != ParStatus::New {
+        *output += "\n";
+        c.ps = ParStatus::Newline;
+    }
     *output += RESET;
     *output += &res;
     *output += &c.modifier;
@@ -168,7 +174,7 @@ pub fn code_to_ansi(
     let mut temp = String::new();
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(c, &mut indent_string);
+    indent(2, c, &mut indent_string);
     temp += &indent_string[1..];
 
     match code {
@@ -199,12 +205,16 @@ pub fn code_to_ansi(
 
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(c, &mut indent_string);
+    indent(2, c, &mut indent_string);
     temp = temp.replace("\n", &indent_string);
+    temp = temp.trim_end().to_string();
 
+    if c.ps != ParStatus::Newline && c.ps != ParStatus::New {
+        *output += "\n";
+        c.ps = ParStatus::Newline;
+    }
     *output += RESET;
     *output += &temp;
-    *output += "\n";
     *output += &c.modifier;
     c.ps = ParStatus::Element;
 }
@@ -252,7 +262,7 @@ pub fn format_text(text: &str, c: &mut Context) -> String {
     }
     for ch in text.chars() {
         if c.ps == ParStatus::Newline || c.ps == ParStatus::New {
-            indent(c, &mut res);
+            indent(0, c, &mut res);
         }
         match ch {
             '\n' => {
@@ -280,8 +290,9 @@ pub fn format_text(text: &str, c: &mut Context) -> String {
     res
 }
 
-pub fn indent(c: &mut Context, output: &mut String) {
-    for _ in 0..(c.indentation - c.indented.min(c.indentation)) {
+pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
+    let indentation = c.indentation + extra;
+    for _ in 0..(indentation - c.indented.min(indentation)) {
         *output += " ";
     }
     c.indented = 0;
