@@ -33,7 +33,9 @@ impl Context {
 
     pub fn indent(&self, indentation_addition: usize, indented: usize) -> Self {
         let mut child = self.clone();
-        child.indented = indented + child.indentation;
+        if indented > 0 {
+            child.indented = indented + child.indentation;
+        }
         child.indentation += indentation_addition;
         child
     }
@@ -72,14 +74,45 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
             DocItem::Nav(nav) => {},
             DocItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
-                paragraph_to_ansi(par, &mut c.indent(2, 0), output);
+                paragraph_to_ansi(par, c, output);
             },
-            DocItem::Section(section) => {},
+            DocItem::Section(section) => section_to_ansi(section, c, output),
         }
         *output += "\n\n";
     }
     output.pop();
     output.pop();
+}
+
+pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
+    heading_to_ansi(&section.heading, c, output);
+    *output += "\n";
+    c.ps = ParStatus::Newline;
+    for item in &section.items {
+        match item {
+            SectionItem::Paragraph(par) => {
+                c.ps = ParStatus::New;
+                paragraph_to_ansi(par, &mut c.indent(2, 0), output);
+            },
+            SectionItem::Section(section) => {
+                section_to_ansi(section, &mut c.indent(2, 0), output);
+            },
+        }
+        *output += "\n\n";
+    }
+    output.pop();
+    output.pop();
+}
+
+pub fn heading_to_ansi(heading: &Heading, c: &mut Context, output: &mut String) {
+    c.push_parstat(BOLD, output);
+    for item in &heading.items {
+        match item {
+            HeadingItem::String(string) => text_to_ansi(string, c, output),
+            HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, c, output),
+        }
+    }
+    c.pop_parstat(output);
 }
 
 pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) {

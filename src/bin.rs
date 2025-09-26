@@ -7,10 +7,16 @@ use incodoc::parsing::parse;
 
 const INPUT: &str =
 "
+# H1
+
+### H3
+
 This is a test. This is another sentence.
 This is on another line.
 
 [this is a **bold** link](url)
+
+### H3
 
 ```rust
 let x = 0;
@@ -46,7 +52,7 @@ for i in 0..10 {
   0 | 1
 C | D
 --|--
-2 | 3
+2 | **3**
 
 test line
 ";
