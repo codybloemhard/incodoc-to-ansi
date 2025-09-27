@@ -58,8 +58,8 @@ test line
 ";
 
 fn main() {
-    let doc = parse_md_to_incodoc(INPUT);
-    // let doc = parse(REF_DOC).unwrap();
+    // let doc = parse_md_to_incodoc(INPUT);
+    let doc = parse(REF_DOC).unwrap();
 
     let mut output = String::new();
     doc_out(&doc, &mut output);

@@ -14,6 +14,7 @@ pub struct Context {
     pub ps: ParStatus,
     pub modifier: String,
     pub modifier_stack: Vec<String>,
+    pub ii_stack: Vec<(usize, usize)>,
     pub indentation: usize,
     pub indented: usize,
 }
@@ -31,13 +32,18 @@ impl Context {
         *output += &self.modifier;
     }
 
-    pub fn indent(&self, indentation_addition: usize, indented: usize) -> Self {
-        let mut child = self.clone();
+    pub fn push_indent(&mut self, indentation_addition: usize, indented: usize) {
+        self.ii_stack.push((self.indentation, self.indented));
         if indented > 0 {
-            child.indented = indented + child.indentation;
+            self.indented = indented + self.indentation;
         }
-        child.indentation += indentation_addition;
-        child
+        self.indentation += indentation_addition;
+    }
+
+    pub fn pop_indent(&mut self) {
+        let (old_indentation, old_indented) = self.ii_stack.pop().expect("could not pop ii_stack");
+        self.indentation = old_indentation;
+        self.indented = old_indented;
     }
 }
 
@@ -71,7 +77,7 @@ pub fn doc_to_ansi_string(doc: &Doc) -> String {
 pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
     for item in &doc.items {
         match item {
-            DocItem::Nav(nav) => {},
+            DocItem::Nav(nav) => nav_to_ansi(nav, c, output),
             DocItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
                 paragraph_to_ansi(par, c, output);
@@ -84,7 +90,35 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
     output.pop();
 }
 
+pub fn nav_to_ansi(nav: &Nav, c: &mut Context, output: &mut String) {
+    if c.ps != ParStatus::Newline {
+        *output += "\n";
+        c.ps = ParStatus::Newline;
+    }
+
+    text_to_ansi(&nav.description, c, output);
+    *output += "\n";
+    c.ps = ParStatus::Newline;
+
+    for link in &nav.links {
+        if c.ps != ParStatus::Newline {
+            *output += "\n";
+            c.ps = ParStatus::Newline;
+        }
+        c.push_indent(2, 0);
+        link_to_ansi(link, c, output);
+        c.pop_indent();
+    }
+
+    for sub in &nav.subs {
+        c.push_indent(2, 0);
+        nav_to_ansi(sub, c, output);
+        c.pop_indent();
+    }
+}
+
 pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
+    c.ps = ParStatus::New;
     heading_to_ansi(&section.heading, c, output);
     *output += "\n";
     c.ps = ParStatus::Newline;
@@ -92,10 +126,14 @@ pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) 
         match item {
             SectionItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
-                paragraph_to_ansi(par, &mut c.indent(2, 0), output);
+                c.push_indent(2, 0);
+                paragraph_to_ansi(par, c, output);
+                c.pop_indent();
             },
             SectionItem::Section(section) => {
-                section_to_ansi(section, &mut c.indent(2, 0), output);
+                c.push_indent(2, 0);
+                section_to_ansi(section, c, output);
+                c.pop_indent();
             },
         }
         *output += "\n\n";
@@ -152,7 +190,9 @@ pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
         indent(0, c, output);
         *output += "- ";
         c.ps = ParStatus::New;
-        paragraph_to_ansi(par, &mut c.indent(2, 2), output);
+        c.push_indent(2, 2);
+        paragraph_to_ansi(par, c, output);
+        c.pop_indent();
         c.ps = ParStatus::Element;
     }
 }
