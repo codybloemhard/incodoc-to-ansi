@@ -182,15 +182,30 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
 }
 
 pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
-    for par in &list.items {
+    let width = match list.ltype {
+        ListType::Distinct => format!("{}", list.items.len().max(1) - 1).len(),
+        ListType::Identical => 2,
+        ListType::Checked => 6,
+    };
+    let iwidth = match list.ltype {
+        ListType::Distinct => width + 2,
+        ListType::Identical | ListType::Checked => width,
+    };
+    println!("{}", width);
+    for (count, par) in list.items.iter().enumerate() {
         if c.ps != ParStatus::Newline {
             *output += "\n";
             c.ps = ParStatus::Newline;
         }
         indent(0, c, output);
-        *output += "- ";
+        match list.ltype {
+            ListType::Distinct => *output += &format!("{count:>width$}. "),
+            ListType::Identical => *output += "- ",
+            ListType::Checked if par.tags.contains("checked") => *output += "- [x] ",
+            ListType::Checked => *output += "- [ ] ",
+        }
         c.ps = ParStatus::New;
-        c.push_indent(2, 2);
+        c.push_indent(iwidth, iwidth);
         paragraph_to_ansi(par, c, output);
         c.pop_indent();
         c.ps = ParStatus::Element;

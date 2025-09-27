@@ -26,8 +26,26 @@ for i in 0..10 {
 ```
 
 - test
-  - test
-  - test
+  1. test
+  1. A | B
+     --|--
+     0 | 1
+  1. test
+  1. test
+  1. test
+  1. test
+  1. test
+  1. test
+  1. test
+  1. test
+  1. test
+- test
+  - [ ] test
+  - [x]
+    A | B
+    --|--
+    0 | 1
+  - [ ] test
 - test
   test
   - A | B
@@ -50,16 +68,33 @@ for i in 0..10 {
 - A | B
   --|--
   0 | 1
-C | D
---|--
-2 | **3**
+C | D | E
+--|--|--
+2 | *3* | ~~4~~
+**5** | ***6*** | `let x = 0;`
 
 test line
+
++++
+nav l0
+  link link text $ url
+  nav l1
+    link link text $ url
+    nav l2a
+      link link text $ url
+      link link text $ url
+    end
+    nav l2b
+      link link text $ url
+    end
+  end
+end
++++
 ";
 
 fn main() {
-    // let doc = parse_md_to_incodoc(INPUT);
-    let doc = parse(REF_DOC).unwrap();
+    let doc = parse_md_to_incodoc(INPUT);
+    // let doc = parse(REF_DOC).unwrap();
 
     let mut output = String::new();
     doc_out(&doc, &mut output);
