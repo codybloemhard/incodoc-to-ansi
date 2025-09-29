@@ -91,20 +91,12 @@ pub fn doc_to_ansi(doc: &Doc, c: &mut Context, output: &mut String) {
 }
 
 pub fn nav_to_ansi(nav: &Nav, c: &mut Context, output: &mut String) {
-    if c.ps != ParStatus::Newline {
-        *output += "\n";
-        c.ps = ParStatus::Newline;
-    }
-
+    newline_not(&[ParStatus::Newline], c, output);
     text_to_ansi(&nav.description, c, output);
-    *output += "\n";
-    c.ps = ParStatus::Newline;
+    newline(c, output);
 
     for link in &nav.links {
-        if c.ps != ParStatus::Newline {
-            *output += "\n";
-            c.ps = ParStatus::Newline;
-        }
+        newline_not(&[ParStatus::Newline], c, output);
         c.push_indent(2, 0);
         link_to_ansi(link, c, output);
         c.pop_indent();
@@ -120,8 +112,7 @@ pub fn nav_to_ansi(nav: &Nav, c: &mut Context, output: &mut String) {
 pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
     c.ps = ParStatus::New;
     heading_to_ansi(&section.heading, c, output);
-    *output += "\n";
-    c.ps = ParStatus::Newline;
+    newline(c, output);
     for item in &section.items {
         match item {
             SectionItem::Paragraph(par) => {
@@ -195,12 +186,8 @@ pub fn list_to_ansi(list: &List, c: &mut Context, output: &mut String) {
         ListType::Distinct => width + 2,
         ListType::Identical | ListType::Checked => width,
     };
-    println!("{}", width);
     for (count, par) in list.items.iter().enumerate() {
-        if c.ps != ParStatus::Newline {
-            *output += "\n";
-            c.ps = ParStatus::Newline;
-        }
+        newline_not(&[ParStatus::Newline], c, output);
         indent(0, c, output);
         match list.ltype {
             ListType::Distinct => *output += &format!("{count:>width$}. "),
@@ -248,10 +235,7 @@ pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut Strin
         res.pop();
     }
 
-    if c.ps != ParStatus::Newline && c.ps != ParStatus::New {
-        *output += "\n";
-        c.ps = ParStatus::Newline;
-    }
+    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
     *output += RESET;
     *output += &res;
     *output += &c.modifier;
@@ -301,10 +285,7 @@ pub fn code_to_ansi(
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 
-    if c.ps != ParStatus::Newline && c.ps != ParStatus::New {
-        *output += "\n";
-        c.ps = ParStatus::Newline;
-    }
+    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.modifier;
@@ -399,3 +380,17 @@ pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
     c.indented = 0;
 }
 
+pub fn newline(c: &mut Context, output: &mut String) {
+    *output += "\n";
+    c.ps = ParStatus::Newline;
+}
+
+pub fn newline_not(pss: &[ParStatus], c: &mut Context, output: &mut String) {
+    for ps in pss {
+        if c.ps == *ps {
+            return;
+        }
+    }
+    *output += "\n";
+    c.ps = ParStatus::Newline;
+}
