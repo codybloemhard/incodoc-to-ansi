@@ -159,8 +159,12 @@ pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) 
             ParagraphItem::Text(text) => {
                 text_to_ansi(text, c, output);
             },
-            ParagraphItem::MText(TextWithMeta { text, tags, props }) => {
-                text_to_ansi(text, c, output);
+            ParagraphItem::MText(TextWithMeta { text, tags, .. }) => {
+                if tags.contains("code") {
+                    inline_code_to_ansi(text, c, output);
+                } else {
+                    text_to_ansi(text, c, output);
+                }
             },
             ParagraphItem::Em(emphasis) => {
                 emphasis_to_ansi(emphasis, c, output);
@@ -305,6 +309,15 @@ pub fn code_to_ansi(
     *output += &temp;
     *output += &c.modifier;
     c.ps = ParStatus::Element;
+}
+
+pub fn inline_code_to_ansi(text: &str, c: &mut Context, output: &mut String) {
+    *output += RESET;
+    *output += BG_BLACK;
+    text_to_ansi(text, c, output);
+    *output += RESET;
+    *output += &c.modifier;
+    c.ps = ParStatus::Emphasis;
 }
 
 pub fn link_to_ansi(link: &Link, c: &mut Context, output: &mut String) {

@@ -13,6 +13,7 @@ const INPUT: &str =
 
 This is a test. This is another sentence.
 This is on another line.
+This is `inline code` inside a line.
 
 [this is a **bold** link](url)
 
