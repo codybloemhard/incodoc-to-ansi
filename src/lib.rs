@@ -293,12 +293,13 @@ pub fn code_to_ansi(
 }
 
 pub fn inline_code_to_ansi(text: &str, c: &mut Context, output: &mut String) {
+    format_text_pre(c, output);
     *output += RESET;
     *output += BG_BLACK;
-    text_to_ansi(text, c, output);
+    format_text_main(text, c, output);
     *output += RESET;
     *output += &c.modifier;
-    c.ps = ParStatus::Emphasis;
+    c.ps = ParStatus::Char;
 }
 
 pub fn link_to_ansi(link: &Link, c: &mut Context, output: &mut String) {
@@ -322,35 +323,45 @@ pub fn emphasis_to_ansi(em: &Emphasis, c: &mut Context, output: &mut String) {
         (EmType::Deemphasis, EmStrength::Strong) => HIDDEN.to_string(),
     };
     *output += &modifier;
-    *output += &format_text(&em.text, c);
+    format_text(&em.text, c, output);
     *output += RESET;
     *output += &c.modifier;
     c.ps = ParStatus::Emphasis;
 }
 
 pub fn text_to_ansi(text: &str, c: &mut Context, output: &mut String) {
-    *output += &format_text(text, c);
+    format_text(text, c, output);
 }
 
-pub fn format_text(text: &str, c: &mut Context) -> String {
-    let mut res = String::new();
+pub fn format_text(text: &str, c: &mut Context, output: &mut String) {
+    format_text_pre(c, output);
+    format_text_main(text, c, output);
+}
+
+pub fn format_text_pre(c: &mut Context, output: &mut String) {
     match c.ps {
-        ParStatus::Char => res.push(' '),
+        ParStatus::Char => {
+            output.push(' ');
+            c.ps = ParStatus::Whitespace;
+        },
         ParStatus::Element => {
-            res.push('\n');
+            output.push('\n');
             c.ps = ParStatus::Newline;
         },
         _ => { },
     }
+}
+
+pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
     for ch in text.chars() {
         if c.ps == ParStatus::Newline || c.ps == ParStatus::New {
-            indent(0, c, &mut res);
+            indent(0, c, output);
         }
         match ch {
             '\n' => {
                 if c.ps == ParStatus::Whitespace || c.ps == ParStatus::Char {
                     c.ps = ParStatus::Newline;
-                    res.push('\n');
+                    output.push('\n');
                 }
             },
             '\r' => {},
@@ -358,18 +369,17 @@ pub fn format_text(text: &str, c: &mut Context) -> String {
                 if x.is_whitespace() {
                     if c.ps != ParStatus::Whitespace {
                         if c.ps != ParStatus::Newline {
-                            res.push(' ');
+                            output.push(' ');
                         }
                         c.ps = ParStatus::Whitespace;
                     }
                 } else {
                     c.ps = ParStatus::Char;
-                    res.push(x);
+                    output.push(x);
                 }
             },
         }
     }
-    res
 }
 
 pub fn indent(extra: usize, c: &mut Context, output: &mut String) {

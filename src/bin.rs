@@ -91,6 +91,19 @@ nav l0
   end
 end
 +++
+
+footnote [^0]
+another [^longernoteid]
+
+[^0]: footnote def
+
+[^longernoteid]:
+  line 0.
+  line 1.
+  `{ code }`
+  line 2.
+  line 3.
+
 ";
 
 fn main() {
