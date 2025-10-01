@@ -104,6 +104,11 @@ another [^longernoteid]
   line 2.
   line 3.
 
+> this is a quote
+> with some **bold** in it
+> > [!NOTE]
+> > another quote
+
 ";
 
 fn main() {

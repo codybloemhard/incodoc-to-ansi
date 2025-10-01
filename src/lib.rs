@@ -110,9 +110,32 @@ pub fn nav_to_ansi(nav: &Nav, c: &mut Context, output: &mut String) {
 }
 
 pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
+    if section.tags.contains("blockquote") || section.tags.contains("blockquote-typed") {
+        blockquote_to_ansi(section, c, output);
+    } else {
+        headed_section_to_ansi(section, c, output);
+    }
+}
+
+pub fn headed_section_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
     c.ps = ParStatus::New;
     heading_to_ansi(&section.heading, c, output);
     newline(c, output);
+    section_body_to_ansi(section, c, output);
+}
+
+pub fn heading_to_ansi(heading: &Heading, c: &mut Context, output: &mut String) {
+    c.push_parstat(BOLD, output);
+    for item in &heading.items {
+        match item {
+            HeadingItem::String(string) => text_to_ansi(string, c, output),
+            HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, c, output),
+        }
+    }
+    c.pop_parstat(output);
+}
+
+pub fn section_body_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
     for item in &section.items {
         match item {
             SectionItem::Paragraph(par) => {
@@ -127,21 +150,32 @@ pub fn section_to_ansi(section: &Section, c: &mut Context, output: &mut String) 
                 c.pop_indent();
             },
         }
-        *output += "\n\n";
+        *output += "\n";
     }
-    output.pop();
     output.pop();
 }
 
-pub fn heading_to_ansi(heading: &Heading, c: &mut Context, output: &mut String) {
-    c.push_parstat(BOLD, output);
-    for item in &heading.items {
-        match item {
-            HeadingItem::String(string) => text_to_ansi(string, c, output),
-            HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, c, output),
-        }
+pub fn blockquote_to_ansi(section: &Section, c: &mut Context, output: &mut String) {
+    let mut table = term_table::Table::builder()
+        .style(TableStyle::thin())
+        .build();
+    let mut row = Row::empty();
+    let mut temp = String::new();
+    if section.tags.contains("blockquote-typed") {
+        heading_to_ansi(&section.heading, c, &mut temp);
+        temp += "\n";
+        c.ps = ParStatus::Newline;
     }
-    c.pop_parstat(output);
+    section_body_to_ansi(section, c, &mut temp);
+    row.add_cell(TableCell::new(temp));
+    table.add_row(row);
+    let raw_table = table.render();
+
+    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
+    *output += RESET;
+    indent_table(&raw_table, c, output);
+    *output += &c.modifier;
+    c.ps = ParStatus::Element;
 }
 
 pub fn paragraph_to_ansi(par: &Paragraph, c: &mut Context, output: &mut String) {
@@ -220,7 +254,16 @@ pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut Strin
         }
         t.add_row(r);
     }
+    let raw_table = t.render();
 
+    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
+    *output += RESET;
+    indent_table(&raw_table, c, output);
+    *output += &c.modifier;
+    c.ps = ParStatus::Element;
+}
+
+pub fn indent_table(raw_table: &str, c: &mut Context, output: &mut String) {
     let mut indent_string_0 = String::new();
     indent_string_0 += "\n";
     indent(0, c, &mut indent_string_0);
@@ -229,17 +272,12 @@ pub fn table_to_ansi(table: &incodoc::Table, c: &mut Context, output: &mut Strin
     indent(0, c, &mut indent_string_1);
     let mut res = String::new();
     res += &indent_string_0[1..];
-    res += &t.render();
+    res += raw_table;
     res = res.replace("\n", &indent_string_1);
     for _ in 0..indent_string_1.len() {
         res.pop();
     }
-
-    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
-    *output += RESET;
     *output += &res;
-    *output += &c.modifier;
-    c.ps = ParStatus::Element;
 }
 
 pub fn code_to_ansi(
