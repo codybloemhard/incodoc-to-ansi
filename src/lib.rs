@@ -3,7 +3,7 @@ use incodoc::*;
 use std::mem;
 
 use zen_colour::*;
-use bat::PrettyPrinter;
+use bat::{ PrettyPrinter, WrappingMode};
 
 use term_table::*;
 use term_table::row::Row;
@@ -261,8 +261,10 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
         let mut r = Row::empty();
         for item in &row.items {
             let mut temp = String::new();
-            let mut table_context = Context::default();
-            table_context.width = c.width - c.indentation;
+            let mut table_context = Context {
+                width: c.width - c.indentation,
+                ..Default::default()
+            };
             paragraph_to_ansi(item, conf, &mut table_context, &mut temp);
             r.add_cell(TableCell::new(temp));
         }
@@ -312,6 +314,10 @@ pub fn code_to_ansi(
                 .input_from_bytes(code.code.as_bytes())
                 .language(&code.language)
                 .theme("ansi")
+                .term_width(c.width - c.indentation - 2)
+                .line_numbers(true)
+                .use_italics(true)
+                .wrapping_mode(WrappingMode::Character)
                 .print_with_writer(Some(&mut temp));
             match res {
                 Ok(true) => { },

@@ -126,14 +126,22 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ## h2
 
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+```rust
+let xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 000000000000000000000000000000000000000000000000000000000000000000000;
+```
+
+A | B
+--|--
+aaaaaaaaaa | bbbbbbbbbb
 ";
 
 fn main() {
-    // let doc = parse_md_to_incodoc(INPUT);
+    let doc = parse_md_to_incodoc(INPUT);
     // let doc = parse(REF_DOC).unwrap();
-    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
-    //
-    let mut output = String::new();
+    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
+
+    // let mut output = String::new();
     // doc_out(&doc, &mut output);
     // println!("{output}");
 
