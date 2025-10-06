@@ -250,10 +250,12 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
 }
 
 pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, output: &mut String) {
-    let mut max = 0;
+    let mut max_cols = 0;
     for row in &table.rows {
-        max = max.max(row.items.len());
+        max_cols = max_cols.max(row.items.len());
     }
+    let available_width = c.width - c.indentation - max_cols - 1;
+    let col_width = available_width / max_cols - 2; // the -2 is for the padding (which is optional)
     let mut t = term_table::Table::builder()
         .style(TableStyle::thin())
         .build();
@@ -262,7 +264,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
         for item in &row.items {
             let mut temp = String::new();
             let mut table_context = Context {
-                width: c.width - c.indentation,
+                width: col_width,
                 ..Default::default()
             };
             paragraph_to_ansi(item, conf, &mut table_context, &mut temp);

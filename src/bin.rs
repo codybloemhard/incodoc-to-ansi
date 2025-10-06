@@ -133,7 +133,7 @@ let xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 000000
 
 A | B
 --|--
-aaaaaaaaaa | bbbbbbbbbb
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa | bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 ";
 
 fn main() {
@@ -149,3 +149,4 @@ fn main() {
     let conf = Config { width: cs };
     println!("{}", doc_to_ansi_string(&doc, &conf));
 }
+
