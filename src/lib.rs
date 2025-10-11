@@ -12,8 +12,10 @@ use term_table::table_cell::TableCell;
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
     pub ps: ParStatus,
-    pub modifier: String,
-    pub modifier_stack: Vec<String>,
+    pub fg_mod: String,
+    pub bg_mod: String,
+    pub fg_mod_stack: Vec<String>,
+    pub bg_mod_stack: Vec<String>,
     pub ii_stack: Vec<(usize, usize)>,
     pub indentation: usize,
     pub indented: usize,
@@ -22,16 +24,30 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn push_parstat(&mut self, new: &str, output: &mut String) {
-        self.modifier_stack.push(mem::take(&mut self.modifier));
-        self.modifier = new.to_string();
-        *output += &self.modifier;
+    pub fn push_fg_mod(&mut self, new: &str, output: &mut String) {
+        self.fg_mod_stack.push(mem::take(&mut self.fg_mod));
+        self.fg_mod = new.to_string();
+        *output += &self.fg_mod;
     }
 
-    pub fn pop_parstat(&mut self, output: &mut String) {
+    pub fn pop_fg_mod(&mut self, output: &mut String) {
         *output += RESET;
-        self.modifier = self.modifier_stack.pop().unwrap_or_default();
-        *output += &self.modifier;
+        self.fg_mod = self.fg_mod_stack.pop().unwrap_or_default();
+        *output += &self.fg_mod;
+        *output += &self.bg_mod;
+    }
+
+    pub fn push_bg_mod(&mut self, new: &str, output: &mut String) {
+        self.bg_mod_stack.push(mem::take(&mut self.bg_mod));
+        self.bg_mod = new.to_string();
+        *output += &self.bg_mod;
+    }
+
+    pub fn pop_bg_mod(&mut self, output: &mut String) {
+        *output += RESET;
+        self.bg_mod = self.bg_mod_stack.pop().unwrap_or_default();
+        *output += &self.bg_mod;
+        *output += &self.fg_mod;
     }
 
     pub fn push_indent(&mut self, indentation_addition: usize, indented: usize) {
@@ -74,7 +90,7 @@ pub struct Config {
 pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
     let mut res = String::new();
     let mut context = Context {
-        modifier: RESET.to_string(),
+        fg_mod: RESET.to_string(),
         width: conf.width,
         ..Default::default()
     };
@@ -136,14 +152,14 @@ pub fn headed_section_to_ansi(
 }
 
 pub fn heading_to_ansi(heading: &Heading, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_parstat(BOLD, output);
+    c.push_fg_mod(BOLD, output);
     for item in &heading.items {
         match item {
             HeadingItem::String(string) => text_to_ansi(string, c, output),
             HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, conf, c, output),
         }
     }
-    c.pop_parstat(output);
+    c.pop_fg_mod(output);
 }
 
 pub fn section_body_to_ansi(
@@ -186,7 +202,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
-    *output += &c.modifier;
+    *output += &c.fg_mod;
     c.ps = ParStatus::Element;
 }
 
@@ -277,7 +293,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
-    *output += &c.modifier;
+    *output += &c.fg_mod;
     c.ps = ParStatus::Element;
 }
 
@@ -349,29 +365,31 @@ pub fn code_to_ansi(
     newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
     *output += RESET;
     *output += &temp;
-    *output += &c.modifier;
+    *output += &c.fg_mod;
     c.ps = ParStatus::Element;
 }
 
 pub fn inline_code_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
     format_text_pre(c, output);
     *output += RESET;
-    *output += BG_BLACK;
+    // *output += BG_BLACK;
+    c.push_bg_mod(BG_BLACK, output);
     format_text_main(text, c, output);
-    *output += RESET;
-    *output += &c.modifier;
+    c.pop_bg_mod(output);
+    // *output += RESET;
+    // *output += &c.fg_mod;
     c.ps = ParStatus::Char;
 }
 
 pub fn link_to_ansi(link: &Link, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_parstat(MAGENTA, output);
+    c.push_fg_mod(MAGENTA, output);
     for item in &link.items {
         match item {
             LinkItem::String(text) => text_to_ansi(text, c, output),
             LinkItem::Em(em) => emphasis_to_ansi(em, conf, c, output),
         }
     }
-    c.pop_parstat(output);
+    c.pop_fg_mod(output);
 }
 
 pub fn emphasis_to_ansi(em: &Emphasis, conf: &Config, c: &mut Context, output: &mut String) {
@@ -386,7 +404,7 @@ pub fn emphasis_to_ansi(em: &Emphasis, conf: &Config, c: &mut Context, output: &
     *output += &modifier;
     format_text(&em.text, c, output);
     *output += RESET;
-    *output += &c.modifier;
+    *output += &c.fg_mod;
     c.ps = ParStatus::Emphasis;
 }
 
@@ -467,12 +485,15 @@ pub fn append(text: &str, c: &mut Context, output: &mut String) {
 }
 
 pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
+    *output += RESET;
     let indentation = c.indentation + extra;
     for _ in 0..(indentation - c.indented.min(indentation)) {
         *output += " ";
         c.col += 1;
     }
     c.indented = 0;
+    *output += &c.fg_mod;
+    *output += &c.bg_mod;
 }
 
 pub fn newline(c: &mut Context, output: &mut String) {
