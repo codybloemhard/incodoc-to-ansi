@@ -70,7 +70,7 @@ pub enum ParStatus {
     /// new paragraph has started
     #[default]
     New,
-    Newline,
+    Newline(usize),
     /// whitespace other than a new line
     Whitespace,
     /// regular character
@@ -108,20 +108,16 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
             },
             DocItem::Section(section) => section_to_ansi(section, conf, c, output),
         }
-        newline(c, output);
-        newline(c, output);
     }
-    output.pop();
-    output.pop();
 }
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
-    newline_not(&[ParStatus::Newline], c, output);
+    newlines_unless(1, &[], c, output);
     text_to_ansi(&nav.description, c, output);
     newline(c, output);
 
     for link in &nav.links {
-        newline_not(&[ParStatus::Newline], c, output);
+        newlines_unless(1, &[], c, output);
         c.push_indent(2, 0);
         link_to_ansi(link, conf, c, output);
         c.pop_indent();
@@ -146,6 +142,7 @@ pub fn headed_section_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     c.ps = ParStatus::New;
+    newlines_unless(1, &[], c, output);
     heading_to_ansi(&section.heading, conf, c, output);
     newline(c, output);
     section_body_to_ansi(section, conf, c, output);
@@ -199,7 +196,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     table.add_row(row);
     let raw_table = table.render();
 
-    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
+    newlines_unless(1, &[ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -249,7 +246,7 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
         ListType::Identical | ListType::Checked => width,
     };
     for (count, par) in list.items.iter().enumerate() {
-        newline_not(&[ParStatus::Newline], c, output);
+        newlines_unless(1, &[], c, output);
         indent(0, c, output);
         match list.ltype {
             ListType::Distinct => append(&format!("{count:>width$}. "), c, output),
@@ -290,7 +287,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     }
     let raw_table = t.render();
 
-    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
+    newlines_unless(1, &[ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -362,7 +359,7 @@ pub fn code_to_ansi(
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 
-    newline_not(&[ParStatus::Newline, ParStatus::New], c, output);
+    newlines_unless(1, &[ParStatus::New], c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.fg_mod;
@@ -372,12 +369,9 @@ pub fn code_to_ansi(
 pub fn inline_code_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
     format_text_pre(c, output);
     *output += RESET;
-    // *output += BG_BLACK;
     c.push_bg_mod(BG_BLACK, output);
     format_text_main(text, c, output);
     c.pop_bg_mod(output);
-    // *output += RESET;
-    // *output += &c.fg_mod;
     c.ps = ParStatus::Char;
 }
 
@@ -440,13 +434,13 @@ pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
         if c.col >= c.width {
             newline(c, output);
         }
-        if c.ps == ParStatus::Newline || c.ps == ParStatus::New {
+        if matches!(c.ps, ParStatus::Newline(_)) || c.ps == ParStatus::New {
             indent(0, c, output);
         }
         match ch {
             '\n' => {
                 if c.ps == ParStatus::Whitespace || c.ps == ParStatus::Char {
-                    c.ps = ParStatus::Newline;
+                    c.ps = ParStatus::Newline(1);
                     c.col = 0;
                     output.push('\n');
                 }
@@ -455,7 +449,7 @@ pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
             x => {
                 if x.is_whitespace() {
                     if c.ps != ParStatus::Whitespace {
-                        if c.ps != ParStatus::Newline {
+                        if !matches!(c.ps, ParStatus::Newline(_)) {
                             output.push(' ');
                             c.col += 1;
                         }
@@ -498,17 +492,28 @@ pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
 
 pub fn newline(c: &mut Context, output: &mut String) {
     *output += "\n";
-    c.ps = ParStatus::Newline;
+    let already = match c.ps {
+        ParStatus::Newline(n) => n,
+        _ => 0,
+    };
+    c.ps = ParStatus::Newline(already + 1);
     c.col = 0;
 }
 
-pub fn newline_not(pss: &[ParStatus], c: &mut Context, output: &mut String) {
+pub fn newlines_unless(newlines: usize, pss: &[ParStatus], c: &mut Context, output: &mut String) {
     for ps in pss {
         if c.ps == *ps {
             return;
         }
     }
-    *output += "\n";
-    c.ps = ParStatus::Newline;
+    let already = match c.ps {
+        ParStatus::Newline(n) => n,
+        _ => 0,
+    };
+    let todo = newlines - already.min(newlines);
+    for _ in 0..todo {
+        *output += "\n";
+    }
+    c.ps = ParStatus::Newline(already + todo);
     c.col = 0;
 }
