@@ -9,6 +9,10 @@ use term_table::*;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
 
+pub mod config;
+
+use config::Config;
+
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
     pub ps: ParStatus,
@@ -80,11 +84,6 @@ pub enum ParStatus {
     Emphasis,
 }
 
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Config {
-    pub width: usize,
-}
-
 /// Take an incodoc and unparse it to ANSI.
 /// Use just this function unless doing something fancy.
 pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
@@ -118,13 +117,13 @@ pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut Strin
 
     for link in &nav.links {
         newlines_unless(1, &[], c, output);
-        c.push_indent(2, 0);
+        c.push_indent(conf.nav_config.link_indent, 0);
         link_to_ansi(link, conf, c, output);
         c.pop_indent();
     }
 
     for sub in &nav.subs {
-        c.push_indent(2, 0);
+        c.push_indent(conf.nav_config.sub_indent, 0);
         nav_to_ansi(sub, conf, c, output);
         c.pop_indent();
     }
@@ -166,12 +165,12 @@ pub fn section_body_to_ansi(
         match item {
             SectionItem::Paragraph(par) => {
                 c.ps = ParStatus::New;
-                c.push_indent(2, 0);
+                c.push_indent(conf.section_config.paragraph_indent, 0);
                 paragraph_to_ansi(par, conf, c, output);
                 c.pop_indent();
             },
             SectionItem::Section(section) => {
-                c.push_indent(2, 0);
+                c.push_indent(conf.section_config.section_indent, 0);
                 section_to_ansi(section, conf, c, output);
                 c.pop_indent();
             },
@@ -320,7 +319,7 @@ pub fn code_to_ansi(
     let mut temp = String::new();
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(2, c, &mut indent_string);
+    indent(conf.code_block_config.indent, c, &mut indent_string);
     temp += &indent_string[1..];
 
     match code {
@@ -329,7 +328,7 @@ pub fn code_to_ansi(
                 .input_from_bytes(code.code.as_bytes())
                 .language(&code.language)
                 .theme("ansi")
-                .term_width(c.width - c.indentation - 2)
+                .term_width(c.width - c.indentation - conf.code_block_config.indent)
                 .line_numbers(true)
                 .use_italics(true)
                 .wrapping_mode(WrappingMode::Character)
@@ -355,7 +354,7 @@ pub fn code_to_ansi(
 
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(2, c, &mut indent_string);
+    indent(conf.code_block_config.indent, c, &mut indent_string);
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 

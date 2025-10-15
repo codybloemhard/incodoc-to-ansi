@@ -1,4 +1,5 @@
 use incodoc_to_ansi::*;
+use incodoc_to_ansi::config::*;
 
 use md_to_incodoc::parse_md_to_incodoc;
 use incodoc::output::doc_out;
@@ -148,7 +149,20 @@ fn main() {
     // println!("{output}");
 
     let cs = term_size::dimensions().unwrap_or((80, 0)).0;
-    let conf = Config { width: cs };
+    let conf = Config {
+        width: cs,
+        nav_config: NavConfig {
+            link_indent: 3,
+            sub_indent: 3,
+        },
+        section_config: SectionConfig {
+            paragraph_indent: 2,
+            section_indent: 2,
+        },
+        code_block_config: CodeBlockConfig {
+            indent: 0,
+        }
+    };
     println!("{}", doc_to_ansi_string(&doc, &conf));
 }
 
