@@ -154,14 +154,31 @@ fn main() {
         nav_config: NavConfig {
             link_indent: 3,
             sub_indent: 3,
+            pre_description_newlines: 1,
+            post_description_newlines: 1,
+            pre_link_newlines: 1,
         },
         section_config: SectionConfig {
             paragraph_indent: 2,
             section_indent: 2,
         },
+        headed_section_config: HeadedSectionConfig {
+            pre_heading_newlines: 1,
+            post_heading_newlines: 2,
+        },
+        blockquote_config: BlockquoteConfig {
+            pre_quote_newlines: 1,
+        },
         code_block_config: CodeBlockConfig {
             indent: 0,
-        }
+            pre_code_block_newlines: 1,
+        },
+        list_config: ListConfig {
+            pre_item_newlines: 1,
+        },
+        table_config: TableConfig {
+            pre_table_newlines: 1,
+        },
     };
     println!("{}", doc_to_ansi_string(&doc, &conf));
 }

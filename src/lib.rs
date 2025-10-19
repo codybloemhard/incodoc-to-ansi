@@ -111,12 +111,12 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
 }
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
-    newlines_unless(1, &[], c, output);
+    newlines_unless(conf.nav_config.pre_description_newlines, &[], c, output);
     text_to_ansi(&nav.description, c, output);
-    newline(c, output);
+    newlines(conf.nav_config.post_description_newlines, c, output);
 
     for link in &nav.links {
-        newlines_unless(1, &[], c, output);
+        newlines_unless(conf.nav_config.pre_link_newlines, &[], c, output);
         c.push_indent(conf.nav_config.link_indent, 0);
         link_to_ansi(link, conf, c, output);
         c.pop_indent();
@@ -141,9 +141,9 @@ pub fn headed_section_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     c.ps = ParStatus::New;
-    newlines_unless(1, &[], c, output);
+    newlines_unless(conf.headed_section_config.pre_heading_newlines, &[], c, output);
     heading_to_ansi(&section.heading, conf, c, output);
-    newline(c, output);
+    newlines(conf.headed_section_config.post_heading_newlines, c, output);
     section_body_to_ansi(section, conf, c, output);
 }
 
@@ -195,7 +195,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     table.add_row(row);
     let raw_table = table.render();
 
-    newlines_unless(1, &[ParStatus::New], c, output);
+    newlines_unless(conf.blockquote_config.pre_quote_newlines, &[ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -245,7 +245,7 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
         ListType::Identical | ListType::Checked => width,
     };
     for (count, par) in list.items.iter().enumerate() {
-        newlines_unless(1, &[], c, output);
+        newlines_unless(conf.list_config.pre_item_newlines, &[], c, output);
         indent(0, c, output);
         match list.ltype {
             ListType::Distinct => append(&format!("{count:>width$}. "), c, output),
@@ -286,7 +286,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     }
     let raw_table = t.render();
 
-    newlines_unless(1, &[ParStatus::New], c, output);
+    newlines_unless(conf.table_config.pre_table_newlines, &[ParStatus::New], c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -358,7 +358,7 @@ pub fn code_to_ansi(
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 
-    newlines_unless(1, &[ParStatus::New], c, output);
+    newlines_unless(conf.code_block_config.pre_code_block_newlines, &[ParStatus::New], c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.fg_mod;
@@ -490,12 +490,18 @@ pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
 }
 
 pub fn newline(c: &mut Context, output: &mut String) {
-    *output += "\n";
+    newlines(1, c, output);
+}
+
+pub fn newlines(n: usize, c: &mut Context, output: &mut String) {
+    for _ in 0..n {
+        *output += "\n";
+    }
     let already = match c.ps {
         ParStatus::Newline(n) => n,
         _ => 0,
     };
-    c.ps = ParStatus::Newline(already + 1);
+    c.ps = ParStatus::Newline(already + n);
     c.col = 0;
 }
 
