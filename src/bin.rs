@@ -137,6 +137,16 @@ A | B
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa | bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 - `loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong`
+
+## h2
+
+test after heading
+
+## h2
+
+- list
+- after
+- heading
 ";
 
 fn main() {
@@ -161,10 +171,11 @@ fn main() {
         section_config: SectionConfig {
             paragraph_indent: 2,
             section_indent: 2,
+            pre_item_newlines: 1,
         },
         headed_section_config: HeadedSectionConfig {
-            pre_heading_newlines: 1,
-            post_heading_newlines: 2,
+            pre_heading_newlines: 2,
+            post_heading_newlines: 1,
         },
         blockquote_config: BlockquoteConfig {
             pre_quote_newlines: 1,

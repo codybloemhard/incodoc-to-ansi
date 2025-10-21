@@ -24,6 +24,7 @@ pub struct NavConfig {
 pub struct SectionConfig {
     pub paragraph_indent: usize,
     pub section_indent: usize,
+    pub pre_item_newlines: usize,
 }
 
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]

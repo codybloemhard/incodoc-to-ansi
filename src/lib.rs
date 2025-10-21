@@ -67,13 +67,17 @@ impl Context {
         self.indentation = old_indentation;
         self.indented = old_indented;
     }
+
+    pub fn set_ps_new(&mut self) {
+        self.ps = ParStatus::New(preceding_newlines(self));
+    }
 }
 
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ParStatus {
-    /// new paragraph has started
-    #[default]
-    New,
+    /// new paragraph has started with nr of newlines preceding
+    New(usize),
+    /// nr of newlines preceding
     Newline(usize),
     /// whitespace other than a new line
     Whitespace,
@@ -84,6 +88,12 @@ pub enum ParStatus {
     Emphasis,
 }
 
+impl Default for ParStatus {
+    fn default() -> Self {
+        Self::New(0)
+    }
+}
+
 /// Take an incodoc and unparse it to ANSI.
 /// Use just this function unless doing something fancy.
 pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
@@ -91,6 +101,7 @@ pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
     let mut context = Context {
         fg_mod: RESET.to_string(),
         width: conf.width,
+        ps: ParStatus::New(1000),
         ..Default::default()
     };
     doc_to_ansi(doc, conf, &mut context, &mut res);
@@ -102,7 +113,7 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
         match item {
             DocItem::Nav(nav) => nav_to_ansi(nav, conf, c, output),
             DocItem::Paragraph(par) => {
-                c.ps = ParStatus::New;
+                c.set_ps_new();
                 paragraph_to_ansi(par, conf, c, output);
             },
             DocItem::Section(section) => section_to_ansi(section, conf, c, output),
@@ -111,12 +122,12 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
 }
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
-    newlines_unless(conf.nav_config.pre_description_newlines, &[], c, output);
+    newlines_minimum(conf.nav_config.pre_description_newlines, false, c, output);
     text_to_ansi(&nav.description, c, output);
     newlines(conf.nav_config.post_description_newlines, c, output);
 
     for link in &nav.links {
-        newlines_unless(conf.nav_config.pre_link_newlines, &[], c, output);
+        newlines_minimum(conf.nav_config.pre_link_newlines, false, c, output);
         c.push_indent(conf.nav_config.link_indent, 0);
         link_to_ansi(link, conf, c, output);
         c.pop_indent();
@@ -140,8 +151,8 @@ pub fn section_to_ansi(section: &Section, conf: &Config, c: &mut Context, output
 pub fn headed_section_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
-    c.ps = ParStatus::New;
-    newlines_unless(conf.headed_section_config.pre_heading_newlines, &[], c, output);
+    c.set_ps_new();
+    newlines_minimum(conf.headed_section_config.pre_heading_newlines, false, c, output);
     heading_to_ansi(&section.heading, conf, c, output);
     newlines(conf.headed_section_config.post_heading_newlines, c, output);
     section_body_to_ansi(section, conf, c, output);
@@ -162,9 +173,10 @@ pub fn section_body_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     for item in &section.items {
+        newlines_minimum(conf.section_config.pre_item_newlines, false, c, output);
         match item {
             SectionItem::Paragraph(par) => {
-                c.ps = ParStatus::New;
+                c.set_ps_new();
                 c.push_indent(conf.section_config.paragraph_indent, 0);
                 paragraph_to_ansi(par, conf, c, output);
                 c.pop_indent();
@@ -175,9 +187,7 @@ pub fn section_body_to_ansi(
                 c.pop_indent();
             },
         }
-        newline(c, output);
     }
-    output.pop();
 }
 
 pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, output: &mut String) {
@@ -195,7 +205,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     table.add_row(row);
     let raw_table = table.render();
 
-    newlines_unless(conf.blockquote_config.pre_quote_newlines, &[ParStatus::New], c, output);
+    newlines_minimum(conf.blockquote_config.pre_quote_newlines, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -245,7 +255,7 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
         ListType::Identical | ListType::Checked => width,
     };
     for (count, par) in list.items.iter().enumerate() {
-        newlines_unless(conf.list_config.pre_item_newlines, &[], c, output);
+        newlines_minimum(conf.list_config.pre_item_newlines, false, c, output);
         indent(0, c, output);
         match list.ltype {
             ListType::Distinct => append(&format!("{count:>width$}. "), c, output),
@@ -253,7 +263,7 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
             ListType::Checked if par.tags.contains("checked") => append("- [x] ", c, output),
             ListType::Checked => append("- [ ] ", c, output),
         }
-        c.ps = ParStatus::New;
+        c.set_ps_new();
         c.push_indent(iwidth, iwidth);
         paragraph_to_ansi(par, conf, c, output);
         c.pop_indent();
@@ -286,7 +296,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     }
     let raw_table = t.render();
 
-    newlines_unless(conf.table_config.pre_table_newlines, &[ParStatus::New], c, output);
+    newlines_minimum(conf.table_config.pre_table_newlines, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -351,14 +361,13 @@ pub fn code_to_ansi(
         },
     }
 
-
     let mut indent_string = String::new();
     indent_string += "\n";
     indent(conf.code_block_config.indent, c, &mut indent_string);
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 
-    newlines_unless(conf.code_block_config.pre_code_block_newlines, &[ParStatus::New], c, output);
+    newlines_minimum(conf.code_block_config.pre_code_block_newlines, true, c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.fg_mod;
@@ -433,7 +442,7 @@ pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
         if c.col >= c.width {
             newline(c, output);
         }
-        if matches!(c.ps, ParStatus::Newline(_)) || c.ps == ParStatus::New {
+        if matches!(c.ps, ParStatus::Newline(_) | ParStatus::New(_)) {
             indent(0, c, output);
         }
         match ch {
@@ -493,28 +502,28 @@ pub fn newline(c: &mut Context, output: &mut String) {
     newlines(1, c, output);
 }
 
+pub fn preceding_newlines(c: &Context) -> usize {
+    match c.ps {
+        ParStatus::New(newlines) => newlines,
+        ParStatus::Newline(newlines) => newlines,
+        _ => 0,
+    }
+}
+
 pub fn newlines(n: usize, c: &mut Context, output: &mut String) {
     for _ in 0..n {
         *output += "\n";
     }
-    let already = match c.ps {
-        ParStatus::Newline(n) => n,
-        _ => 0,
-    };
+    let already = preceding_newlines(c);
     c.ps = ParStatus::Newline(already + n);
     c.col = 0;
 }
 
-pub fn newlines_unless(newlines: usize, pss: &[ParStatus], c: &mut Context, output: &mut String) {
-    for ps in pss {
-        if c.ps == *ps {
-            return;
-        }
+pub fn newlines_minimum(newlines: usize, skip_if_new: bool, c: &mut Context, output: &mut String) {
+    if skip_if_new && matches!(c.ps, ParStatus::New(_)) {
+        return;
     }
-    let already = match c.ps {
-        ParStatus::Newline(n) => n,
-        _ => 0,
-    };
+    let already = preceding_newlines(c);
     let todo = newlines - already.min(newlines);
     for _ in 0..todo {
         *output += "\n";
