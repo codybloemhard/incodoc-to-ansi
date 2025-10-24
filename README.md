@@ -2,7 +2,10 @@
 
 Convert incodoc to ANSI: plain text with with formatting and colours ready to display in a terminal.
 
-Very much work in progress.
+Incodoc is an incorporeal document format.
+For more see: <https://github.com/codybloemhard/incodoc>
+
+Work in progress.
 Corporeal elements to be configurable.
 
 - terminal width

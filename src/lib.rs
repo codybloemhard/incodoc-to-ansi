@@ -122,19 +122,19 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
 }
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
-    newlines_minimum(conf.nav_config.pre_description_newlines, false, c, output);
+    newlines_minimum(conf.nav.pre_description_mns + 1, false, c, output);
     text_to_ansi(&nav.description, c, output);
-    newlines(conf.nav_config.post_description_newlines, c, output);
+    newlines(conf.nav.post_description_ns + 1, c, output);
 
     for link in &nav.links {
-        newlines_minimum(conf.nav_config.pre_link_newlines, false, c, output);
-        c.push_indent(conf.nav_config.link_indent, 0);
+        newlines_minimum(conf.nav.pre_link_mns + 1, false, c, output);
+        c.push_indent(conf.nav.link_indent, 0);
         link_to_ansi(link, conf, c, output);
         c.pop_indent();
     }
 
     for sub in &nav.subs {
-        c.push_indent(conf.nav_config.sub_indent, 0);
+        c.push_indent(conf.nav.sub_indent, 0);
         nav_to_ansi(sub, conf, c, output);
         c.pop_indent();
     }
@@ -152,9 +152,9 @@ pub fn headed_section_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     c.set_ps_new();
-    newlines_minimum(conf.headed_section_config.pre_heading_newlines, false, c, output);
+    newlines_minimum(conf.headed_section.pre_heading_mns + 1, false, c, output);
     heading_to_ansi(&section.heading, conf, c, output);
-    newlines(conf.headed_section_config.post_heading_newlines, c, output);
+    newlines(conf.headed_section.post_heading_ns + 1, c, output);
     section_body_to_ansi(section, conf, c, output);
 }
 
@@ -173,16 +173,16 @@ pub fn section_body_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     for item in &section.items {
-        newlines_minimum(conf.section_config.pre_item_newlines, false, c, output);
+        newlines_minimum(conf.section.pre_item_mns + 1, false, c, output);
         match item {
             SectionItem::Paragraph(par) => {
                 c.set_ps_new();
-                c.push_indent(conf.section_config.paragraph_indent, 0);
+                c.push_indent(conf.section.paragraph_indent, 0);
                 paragraph_to_ansi(par, conf, c, output);
                 c.pop_indent();
             },
             SectionItem::Section(section) => {
-                c.push_indent(conf.section_config.section_indent, 0);
+                c.push_indent(conf.section.section_indent, 0);
                 section_to_ansi(section, conf, c, output);
                 c.pop_indent();
             },
@@ -205,7 +205,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     table.add_row(row);
     let raw_table = table.render();
 
-    newlines_minimum(conf.blockquote_config.pre_quote_newlines, true, c, output);
+    newlines_minimum(conf.blockquote.pre_quote_mns + 1, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -255,7 +255,7 @@ pub fn list_to_ansi(list: &List, conf: &Config, c: &mut Context, output: &mut St
         ListType::Identical | ListType::Checked => width,
     };
     for (count, par) in list.items.iter().enumerate() {
-        newlines_minimum(conf.list_config.pre_item_newlines, false, c, output);
+        newlines_minimum(conf.list.pre_item_mns + 1, false, c, output);
         indent(0, c, output);
         match list.ltype {
             ListType::Distinct => append(&format!("{count:>width$}. "), c, output),
@@ -296,7 +296,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     }
     let raw_table = t.render();
 
-    newlines_minimum(conf.table_config.pre_table_newlines, true, c, output);
+    newlines_minimum(conf.table.pre_table_mns + 1, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
     *output += &c.fg_mod;
@@ -329,7 +329,7 @@ pub fn code_to_ansi(
     let mut temp = String::new();
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(conf.code_block_config.indent, c, &mut indent_string);
+    indent(conf.code_block.indent, c, &mut indent_string);
     temp += &indent_string[1..];
 
     match code {
@@ -338,7 +338,7 @@ pub fn code_to_ansi(
                 .input_from_bytes(code.code.as_bytes())
                 .language(&code.language)
                 .theme("ansi")
-                .term_width(c.width - c.indentation - conf.code_block_config.indent)
+                .term_width(c.width - c.indentation - conf.code_block.indent)
                 .line_numbers(true)
                 .use_italics(true)
                 .wrapping_mode(WrappingMode::Character)
@@ -363,11 +363,11 @@ pub fn code_to_ansi(
 
     let mut indent_string = String::new();
     indent_string += "\n";
-    indent(conf.code_block_config.indent, c, &mut indent_string);
+    indent(conf.code_block.indent, c, &mut indent_string);
     temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
 
-    newlines_minimum(conf.code_block_config.pre_code_block_newlines, true, c, output);
+    newlines_minimum(conf.code_block.pre_code_block_mns + 1, true, c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.fg_mod;

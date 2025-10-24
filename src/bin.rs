@@ -150,9 +150,10 @@ test after heading
 ";
 
 fn main() {
-    let doc = parse_md_to_incodoc(INPUT);
+    // let doc = parse_md_to_incodoc(INPUT);
     // let doc = parse(REF_DOC).unwrap();
-    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
+    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
+    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
 
     // let mut output = String::new();
     // doc_out(&doc, &mut output);
@@ -161,34 +162,34 @@ fn main() {
     let cs = term_size::dimensions().unwrap_or((80, 0)).0;
     let conf = Config {
         width: cs,
-        nav_config: NavConfig {
+        nav: NavConfig {
             link_indent: 3,
             sub_indent: 3,
-            pre_description_newlines: 1,
-            post_description_newlines: 1,
-            pre_link_newlines: 1,
+            pre_description_mns: 0,
+            post_description_ns: 0,
+            pre_link_mns: 0,
         },
-        section_config: SectionConfig {
+        section: SectionConfig {
             paragraph_indent: 2,
             section_indent: 2,
-            pre_item_newlines: 1,
+            pre_item_mns: 0,
         },
-        headed_section_config: HeadedSectionConfig {
-            pre_heading_newlines: 2,
-            post_heading_newlines: 1,
+        headed_section: HeadedSectionConfig {
+            pre_heading_mns: 1,
+            post_heading_ns: 0,
         },
-        blockquote_config: BlockquoteConfig {
-            pre_quote_newlines: 1,
+        blockquote: BlockquoteConfig {
+            pre_quote_mns: 0,
         },
-        code_block_config: CodeBlockConfig {
+        code_block: CodeBlockConfig {
             indent: 0,
-            pre_code_block_newlines: 1,
+            pre_code_block_mns: 0,
         },
-        list_config: ListConfig {
-            pre_item_newlines: 1,
+        list: ListConfig {
+            pre_item_mns: 0,
         },
-        table_config: TableConfig {
-            pre_table_newlines: 1,
+        table: TableConfig {
+            pre_table_mns: 0,
         },
     };
     println!("{}", doc_to_ansi_string(&doc, &conf));
