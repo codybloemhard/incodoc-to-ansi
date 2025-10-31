@@ -123,7 +123,7 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
     newlines_minimum(conf.nav.pre_description_mns + 1, false, c, output);
-    text_to_ansi(&nav.description, c, output);
+    text_to_ansi(&nav.description, conf, c, output);
     newlines(conf.nav.post_description_ns + 1, c, output);
 
     for link in &nav.links {
@@ -162,7 +162,7 @@ pub fn heading_to_ansi(heading: &Heading, conf: &Config, c: &mut Context, output
     c.push_fg_mod(BOLD, output);
     for item in &heading.items {
         match item {
-            HeadingItem::String(string) => text_to_ansi(string, c, output),
+            HeadingItem::String(string) => text_to_ansi(string, conf, c, output),
             HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, conf, c, output),
         }
     }
@@ -216,13 +216,13 @@ pub fn paragraph_to_ansi(par: &Paragraph, conf: &Config, c: &mut Context, output
     for item in &par.items {
         match item {
             ParagraphItem::Text(text) => {
-                text_to_ansi(text, c, output);
+                text_to_ansi(text, conf, c, output);
             },
             ParagraphItem::MText(TextWithMeta { text, tags, .. }) => {
                 if tags.contains("code") {
                     inline_code_to_ansi(text, conf, c, output);
                 } else {
-                    text_to_ansi(text, c, output);
+                    text_to_ansi(text, conf, c, output);
                 }
             },
             ParagraphItem::Em(emphasis) => {
@@ -378,7 +378,7 @@ pub fn inline_code_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &
     format_text_pre(c, output);
     *output += RESET;
     c.push_bg_mod(BG_BLACK, output);
-    format_text_main(text, c, output);
+    format_text_main(text, conf, c, output);
     c.pop_bg_mod(output);
     c.ps = ParStatus::Char;
 }
@@ -387,7 +387,7 @@ pub fn link_to_ansi(link: &Link, conf: &Config, c: &mut Context, output: &mut St
     c.push_fg_mod(MAGENTA, output);
     for item in &link.items {
         match item {
-            LinkItem::String(text) => text_to_ansi(text, c, output),
+            LinkItem::String(text) => text_to_ansi(text, conf, c, output),
             LinkItem::Em(em) => emphasis_to_ansi(em, conf, c, output),
         }
     }
@@ -404,19 +404,19 @@ pub fn emphasis_to_ansi(em: &Emphasis, conf: &Config, c: &mut Context, output: &
         (EmType::Deemphasis, EmStrength::Strong) => HIDDEN.to_string(),
     };
     *output += &modifier;
-    format_text(&em.text, c, output);
+    format_text(&em.text, conf, c, output);
     *output += RESET;
     *output += &c.fg_mod;
     c.ps = ParStatus::Emphasis;
 }
 
-pub fn text_to_ansi(text: &str, c: &mut Context, output: &mut String) {
-    format_text(text, c, output);
+pub fn text_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
+    format_text(text, conf, c, output);
 }
 
-pub fn format_text(text: &str, c: &mut Context, output: &mut String) {
+pub fn format_text(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
     format_text_pre(c, output);
-    format_text_main(text, c, output);
+    format_text_main(text, conf, c, output);
 }
 
 pub fn format_text_pre(c: &mut Context, output: &mut String) {
@@ -437,7 +437,7 @@ pub fn format_text_pre(c: &mut Context, output: &mut String) {
     }
 }
 
-pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
+pub fn format_text_main(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
     for ch in text.chars() {
         if c.col >= c.width {
             newline(c, output);
@@ -464,6 +464,12 @@ pub fn format_text_main(text: &str, c: &mut Context, output: &mut String) {
                         c.ps = ParStatus::Whitespace;
                     }
                 } else {
+                    if conf.text.swallow_whitespace && c.ps == ParStatus::Whitespace
+                        && conf.text.whitespace_swallowers.contains(&x.to_string())
+                    {
+                        output.pop();
+                        c.col -= 1;
+                    }
                     c.ps = ParStatus::Char;
                     c.col += 1;
                     output.push(x);

@@ -1,5 +1,5 @@
 
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Config {
     pub width: usize,
     pub nav: NavConfig,
@@ -9,6 +9,7 @@ pub struct Config {
     pub blockquote: BlockquoteConfig,
     pub list: ListConfig,
     pub table: TableConfig,
+    pub text: TextConfig,
 }
 
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -52,4 +53,10 @@ pub struct ListConfig {
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TableConfig {
     pub pre_table_mns: usize,
+}
+
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct TextConfig {
+    pub swallow_whitespace: bool,
+    pub whitespace_swallowers: String,
 }

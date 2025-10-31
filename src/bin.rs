@@ -147,13 +147,16 @@ test after heading
 - list
 - after
 - heading
+- test's
+
+looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
 ";
 
 fn main() {
     // let doc = parse_md_to_incodoc(INPUT);
     // let doc = parse(REF_DOC).unwrap();
-    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
-    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
+    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
+    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
 
     // let mut output = String::new();
     // doc_out(&doc, &mut output);
@@ -190,6 +193,10 @@ fn main() {
         },
         table: TableConfig {
             pre_table_mns: 0,
+        },
+        text: TextConfig {
+            swallow_whitespace: true,
+            whitespace_swallowers: ".,;:)}]".to_string(),
         },
     };
     println!("{}", doc_to_ansi_string(&doc, &conf));
