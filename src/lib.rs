@@ -81,6 +81,7 @@ pub enum ParStatus {
     Newline(usize),
     /// whitespace other than a new line
     Whitespace,
+    Indentation,
     /// regular character
     Char,
     /// non-text element: code, list, table, image, etc
@@ -498,6 +499,7 @@ pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
     for _ in 0..(indentation - c.indented.min(indentation)) {
         *output += " ";
         c.col += 1;
+        c.ps = ParStatus::Indentation;
     }
     c.indented = 0;
     *output += &c.fg_mod;
@@ -523,6 +525,7 @@ pub fn newlines(n: usize, c: &mut Context, output: &mut String) {
     let already = preceding_newlines(c);
     c.ps = ParStatus::Newline(already + n);
     c.col = 0;
+    c.indented = 0;
 }
 
 pub fn newlines_minimum(newlines: usize, skip_if_new: bool, c: &mut Context, output: &mut String) {
@@ -536,4 +539,5 @@ pub fn newlines_minimum(newlines: usize, skip_if_new: bool, c: &mut Context, out
     }
     c.ps = ParStatus::Newline(already + todo);
     c.col = 0;
+    c.indented = 0;
 }

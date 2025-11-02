@@ -149,14 +149,28 @@ test after heading
 - heading
 - test's
 
-looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
+# h1
+
+## h2
+
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbb
+
+### h3
+
+#### h4
+
+It is desirable for the user to know whether they are dealing with incorporeal content or not before
+rendering it.
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbb
 ";
 
 fn main() {
-    // let doc = parse_md_to_incodoc(INPUT);
     // let doc = parse(REF_DOC).unwrap();
     // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
-    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
+    let doc = parse_md_to_incodoc(INPUT);
+    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
 
     // let mut output = String::new();
     // doc_out(&doc, &mut output);
