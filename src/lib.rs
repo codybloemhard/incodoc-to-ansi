@@ -3,7 +3,7 @@ use incodoc::*;
 use std::mem;
 
 use zen_colour::*;
-use bat::{ PrettyPrinter, WrappingMode};
+use bat::{ PrettyPrinter, WrappingMode };
 
 use term_table::*;
 use term_table::row::Row;
@@ -327,6 +327,8 @@ pub fn code_to_ansi(
     c: &mut Context,
     output: &mut String
 ) {
+    newlines_minimum(conf.code_block.pre_code_block_mns + 1, true, c, output);
+
     let mut temp = String::new();
     let mut indent_string = String::new();
     indent_string += "\n";
@@ -365,10 +367,9 @@ pub fn code_to_ansi(
     let mut indent_string = String::new();
     indent_string += "\n";
     indent(conf.code_block.indent, c, &mut indent_string);
-    temp = temp.replace("\n", &indent_string);
     temp = temp.trim_end().to_string();
+    temp = temp.replace("\n", &indent_string);
 
-    newlines_minimum(conf.code_block.pre_code_block_mns + 1, true, c, output);
     *output += RESET;
     *output += &temp;
     *output += &c.fg_mod;
