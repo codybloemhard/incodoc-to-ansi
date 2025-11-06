@@ -11,15 +11,13 @@ use term_table::table_cell::TableCell;
 
 pub mod config;
 
-use config::Config;
+use config::*;
 
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Context {
     pub ps: ParStatus,
-    pub fg_mod: String,
-    pub bg_mod: String,
-    pub fg_mod_stack: Vec<String>,
-    pub bg_mod_stack: Vec<String>,
+    pub current_mod: AnsiMod,
+    pub mod_stack: Vec<AnsiMod>,
     pub ii_stack: Vec<(usize, usize)>,
     pub indentation: usize,
     pub indented: usize,
@@ -28,30 +26,17 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn push_fg_mod(&mut self, new: &str, output: &mut String) {
-        self.fg_mod_stack.push(mem::take(&mut self.fg_mod));
-        self.fg_mod = new.to_string();
-        *output += &self.fg_mod;
+    pub fn push_mod(&mut self, mut new: AnsiMod, output: &mut String) {
+        new = new.inherit(&self.current_mod);
+        *output += &new.to_ansi_string();
+        self.mod_stack.push(mem::take(&mut self.current_mod));
+        self.current_mod = new;
     }
 
-    pub fn pop_fg_mod(&mut self, output: &mut String) {
+    pub fn pop_mod(&mut self, output: &mut String) {
         *output += RESET;
-        self.fg_mod = self.fg_mod_stack.pop().unwrap_or_default();
-        *output += &self.fg_mod;
-        *output += &self.bg_mod;
-    }
-
-    pub fn push_bg_mod(&mut self, new: &str, output: &mut String) {
-        self.bg_mod_stack.push(mem::take(&mut self.bg_mod));
-        self.bg_mod = new.to_string();
-        *output += &self.bg_mod;
-    }
-
-    pub fn pop_bg_mod(&mut self, output: &mut String) {
-        *output += RESET;
-        self.bg_mod = self.bg_mod_stack.pop().unwrap_or_default();
-        *output += &self.bg_mod;
-        *output += &self.fg_mod;
+        self.current_mod = self.mod_stack.pop().unwrap_or_default();
+        *output += &self.current_mod.to_ansi_string();
     }
 
     pub fn push_indent(&mut self, indentation_addition: usize, indented: usize) {
@@ -100,7 +85,7 @@ impl Default for ParStatus {
 pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
     let mut res = String::new();
     let mut context = Context {
-        fg_mod: RESET.to_string(),
+        // fg_mod: RESET.to_string(),
         width: conf.width,
         ps: ParStatus::New(1000),
         ..Default::default()
@@ -160,14 +145,14 @@ pub fn headed_section_to_ansi(
 }
 
 pub fn heading_to_ansi(heading: &Heading, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_fg_mod(BOLD, output);
+    c.push_mod(conf.heading.ansi_mod.clone(), output);
     for item in &heading.items {
         match item {
             HeadingItem::String(string) => text_to_ansi(string, conf, c, output),
             HeadingItem::Em(emphasis) => emphasis_to_ansi(emphasis, conf, c, output),
         }
     }
-    c.pop_fg_mod(output);
+    c.pop_mod(output);
 }
 
 pub fn section_body_to_ansi(
@@ -209,7 +194,7 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     newlines_minimum(conf.blockquote.pre_quote_mns + 1, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
-    *output += &c.fg_mod;
+    *output += &c.current_mod.to_ansi_string();
     c.ps = ParStatus::Element;
 }
 
@@ -300,7 +285,7 @@ pub fn table_to_ansi(table: &incodoc::Table, conf: &Config, c: &mut Context, out
     newlines_minimum(conf.table.pre_table_mns + 1, true, c, output);
     *output += RESET;
     indent_table(&raw_table, c, output);
-    *output += &c.fg_mod;
+    *output += &c.current_mod.to_ansi_string();
     c.ps = ParStatus::Element;
 }
 
@@ -340,10 +325,10 @@ pub fn code_to_ansi(
             let res = PrettyPrinter::new()
                 .input_from_bytes(code.code.as_bytes())
                 .language(&code.language)
-                .theme("ansi")
+                .theme(&conf.code_block.bat_theme)
                 .term_width(c.width - c.indentation - conf.code_block.indent)
-                .line_numbers(true)
-                .use_italics(true)
+                .line_numbers(conf.code_block.show_line_numbers)
+                .use_italics(conf.code_block.use_italics)
                 .wrapping_mode(WrappingMode::Character)
                 .print_with_writer(Some(&mut temp));
             match res {
@@ -372,28 +357,28 @@ pub fn code_to_ansi(
 
     *output += RESET;
     *output += &temp;
-    *output += &c.fg_mod;
+    *output += &c.current_mod.to_ansi_string();
     c.ps = ParStatus::Element;
 }
 
 pub fn inline_code_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &mut String) {
     format_text_pre(c, output);
     *output += RESET;
-    c.push_bg_mod(BG_BLACK, output);
+    c.push_mod(conf.code_inline.ansi_mod.clone(), output);
     format_text_main(text, conf, c, output);
-    c.pop_bg_mod(output);
+    c.pop_mod(output);
     c.ps = ParStatus::Char;
 }
 
 pub fn link_to_ansi(link: &Link, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_fg_mod(MAGENTA, output);
+    c.push_mod(conf.link.ansi_mod.clone(), output);
     for item in &link.items {
         match item {
             LinkItem::String(text) => text_to_ansi(text, conf, c, output),
             LinkItem::Em(em) => emphasis_to_ansi(em, conf, c, output),
         }
     }
-    c.pop_fg_mod(output);
+    c.pop_mod(output);
 }
 
 pub fn emphasis_to_ansi(em: &Emphasis, conf: &Config, c: &mut Context, output: &mut String) {
@@ -408,7 +393,7 @@ pub fn emphasis_to_ansi(em: &Emphasis, conf: &Config, c: &mut Context, output: &
     *output += &modifier;
     format_text(&em.text, conf, c, output);
     *output += RESET;
-    *output += &c.fg_mod;
+    *output += &c.current_mod.to_ansi_string();
     c.ps = ParStatus::Emphasis;
 }
 
@@ -503,8 +488,7 @@ pub fn indent(extra: usize, c: &mut Context, output: &mut String) {
         c.ps = ParStatus::Indentation;
     }
     c.indented = 0;
-    *output += &c.fg_mod;
-    *output += &c.bg_mod;
+    *output += &c.current_mod.to_ansi_string();
 }
 
 pub fn newline(c: &mut Context, output: &mut String) {

@@ -169,8 +169,8 @@ bbbbb
 fn main() {
     // let doc = parse(REF_DOC).unwrap();
     // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
-    let doc = parse_md_to_incodoc(INPUT);
-    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
+    // let doc = parse_md_to_incodoc(INPUT);
+    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
 
     // let mut output = String::new();
     // doc_out(&doc, &mut output);
@@ -195,18 +195,42 @@ fn main() {
             pre_heading_mns: 1,
             post_heading_ns: 0,
         },
+        heading: HeadingConfig {
+            ansi_mod: AnsiMod {
+                fg: None,
+                bg: Some(ColMod::Black),
+                fx: Some(vec![FxMod::Bold]),
+            },
+        },
         blockquote: BlockquoteConfig {
             pre_quote_mns: 0,
         },
         code_block: CodeBlockConfig {
             indent: 0,
             pre_code_block_mns: 0,
+            bat_theme: "ansi".to_string(),
+            show_line_numbers: true,
+            use_italics: true,
+        },
+        code_inline: CodeInlineConfig {
+            ansi_mod: AnsiMod {
+                fg: None,
+                bg: Some(ColMod::Black),
+                fx: None,
+            },
         },
         list: ListConfig {
             pre_item_mns: 0,
         },
         table: TableConfig {
             pre_table_mns: 0,
+        },
+        link: LinkConfig {
+            ansi_mod: AnsiMod {
+                fg: Some(ColMod::Magenta),
+                bg: None,
+                fx: None,
+            },
         },
         text: TextConfig {
             swallow_whitespace: true,
