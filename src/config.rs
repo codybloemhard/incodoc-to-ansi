@@ -4,25 +4,45 @@ use zen_colour::*;
 pub struct Config {
     pub width: usize,
     pub nav: NavConfig,
-    pub section: SectionConfig,
     pub headed_section: HeadedSectionConfig,
-    pub heading: HeadingConfig,
+    pub blockquote: BlockquoteConfig,
     pub code_block: CodeBlockConfig,
     pub code_inline: CodeInlineConfig,
-    pub blockquote: BlockquoteConfig,
     pub list: ListConfig,
     pub table: TableConfig,
     pub link: LinkConfig,
     pub text: TextConfig,
 }
 
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct NavConfig {
     pub link_indent: usize,
     pub sub_indent: usize,
+    pub description_ansi_mod: AnsiMod,
+    pub link: LinkConfig,
     pub pre_description_mns: usize,
     pub post_description_ns: usize,
     pub pre_link_mns: usize,
+}
+
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct HeadedSectionConfig {
+    pub heading: HeadingConfig,
+    pub section: SectionConfig,
+}
+
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct BlockquoteConfig {
+    pub pre_quote_mns: usize,
+    pub heading: HeadingConfig,
+    pub section: SectionConfig,
+}
+
+#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct HeadingConfig {
+    pub pre_heading_mns: usize,
+    pub post_heading_ns: usize,
+    pub ansi_mod: AnsiMod,
 }
 
 #[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -30,22 +50,6 @@ pub struct SectionConfig {
     pub paragraph_indent: usize,
     pub section_indent: usize,
     pub pre_item_mns: usize,
-}
-
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct HeadedSectionConfig {
-    pub pre_heading_mns: usize,
-    pub post_heading_ns: usize,
-}
-
-#[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct HeadingConfig {
-    pub ansi_mod: AnsiMod,
-}
-
-#[derive(Clone, Copy, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct BlockquoteConfig {
-    pub pre_quote_mns: usize,
 }
 
 #[derive(Clone, Default, Hash, Debug, Eq, PartialEq, Ord, PartialOrd)]

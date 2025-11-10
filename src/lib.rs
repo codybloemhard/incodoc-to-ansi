@@ -85,7 +85,6 @@ impl Default for ParStatus {
 pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
     let mut res = String::new();
     let mut context = Context {
-        // fg_mod: RESET.to_string(),
         width: conf.width,
         ps: ParStatus::New(1000),
         ..Default::default()
@@ -95,6 +94,7 @@ pub fn doc_to_ansi_string(doc: &Doc, conf: &Config) -> String {
 }
 
 pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut String) {
+    *output += RESET;
     for item in &doc.items {
         match item {
             DocItem::Nav(nav) => nav_to_ansi(nav, conf, c, output),
@@ -109,13 +109,15 @@ pub fn doc_to_ansi(doc: &Doc, conf: &Config, c: &mut Context, output: &mut Strin
 
 pub fn nav_to_ansi(nav: &Nav, conf: &Config, c: &mut Context, output: &mut String) {
     newlines_minimum(conf.nav.pre_description_mns + 1, false, c, output);
+    c.push_mod(conf.nav.description_ansi_mod.clone(), output);
     text_to_ansi(&nav.description, conf, c, output);
     newlines(conf.nav.post_description_ns + 1, c, output);
+    c.pop_mod(output);
 
     for link in &nav.links {
         newlines_minimum(conf.nav.pre_link_mns + 1, false, c, output);
         c.push_indent(conf.nav.link_indent, 0);
-        link_to_ansi(link, conf, c, output);
+        link_to_ansi(link, &conf.nav.link, conf, c, output);
         c.pop_indent();
     }
 
@@ -138,14 +140,20 @@ pub fn headed_section_to_ansi(
     section: &Section, conf: &Config, c: &mut Context, output: &mut String
 ) {
     c.set_ps_new();
-    newlines_minimum(conf.headed_section.pre_heading_mns + 1, false, c, output);
-    heading_to_ansi(&section.heading, conf, c, output);
-    newlines(conf.headed_section.post_heading_ns + 1, c, output);
-    section_body_to_ansi(section, conf, c, output);
+    newlines_minimum(conf.headed_section.heading.pre_heading_mns + 1, false, c, output);
+    heading_to_ansi(&section.heading, &conf.headed_section.heading, conf, c, output);
+    newlines(conf.headed_section.heading.post_heading_ns + 1, c, output);
+    section_body_to_ansi(section, &conf.headed_section.section, conf, c, output);
 }
 
-pub fn heading_to_ansi(heading: &Heading, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_mod(conf.heading.ansi_mod.clone(), output);
+pub fn heading_to_ansi(
+    heading: &Heading,
+    hconf: &HeadingConfig,
+    conf: &Config,
+    c: &mut Context,
+    output: &mut String
+) {
+    c.push_mod(hconf.ansi_mod.clone(), output);
     for item in &heading.items {
         match item {
             HeadingItem::String(string) => text_to_ansi(string, conf, c, output),
@@ -156,19 +164,19 @@ pub fn heading_to_ansi(heading: &Heading, conf: &Config, c: &mut Context, output
 }
 
 pub fn section_body_to_ansi(
-    section: &Section, conf: &Config, c: &mut Context, output: &mut String
+    section: &Section, sconf: &SectionConfig, conf: &Config, c: &mut Context, output: &mut String
 ) {
     for item in &section.items {
-        newlines_minimum(conf.section.pre_item_mns + 1, false, c, output);
+        newlines_minimum(sconf.pre_item_mns + 1, false, c, output);
         match item {
             SectionItem::Paragraph(par) => {
                 c.set_ps_new();
-                c.push_indent(conf.section.paragraph_indent, 0);
+                c.push_indent(sconf.paragraph_indent, 0);
                 paragraph_to_ansi(par, conf, c, output);
                 c.pop_indent();
             },
             SectionItem::Section(section) => {
-                c.push_indent(conf.section.section_indent, 0);
+                c.push_indent(sconf.section_indent, 0);
                 section_to_ansi(section, conf, c, output);
                 c.pop_indent();
             },
@@ -183,10 +191,10 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
     let mut row = Row::empty();
     let mut temp = String::new();
     if section.tags.contains("blockquote-typed") {
-        heading_to_ansi(&section.heading, conf, c, &mut temp);
+        heading_to_ansi(&section.heading, &conf.blockquote.heading, conf, c, &mut temp);
         newline(c, &mut temp);
     }
-    section_body_to_ansi(section, conf, c, &mut temp);
+    section_body_to_ansi(section, &conf.blockquote.section, conf, c, &mut temp);
     row.add_cell(TableCell::new(temp));
     table.add_row(row);
     let raw_table = table.render();
@@ -215,7 +223,7 @@ pub fn paragraph_to_ansi(par: &Paragraph, conf: &Config, c: &mut Context, output
                 emphasis_to_ansi(emphasis, conf, c, output);
             },
             ParagraphItem::Link(link) => {
-                link_to_ansi(link, conf, c, output);
+                link_to_ansi(link, &conf.link, conf, c, output);
             },
             ParagraphItem::Code(code) => {
                 code_to_ansi(code, conf, c, output);
@@ -370,8 +378,14 @@ pub fn inline_code_to_ansi(text: &str, conf: &Config, c: &mut Context, output: &
     c.ps = ParStatus::Char;
 }
 
-pub fn link_to_ansi(link: &Link, conf: &Config, c: &mut Context, output: &mut String) {
-    c.push_mod(conf.link.ansi_mod.clone(), output);
+pub fn link_to_ansi(
+    link: &Link,
+    lconf: &LinkConfig,
+    conf: &Config,
+    c: &mut Context,
+    output: &mut String
+) {
+    c.push_mod(lconf.ansi_mod.clone(), output);
     for item in &link.items {
         match item {
             LinkItem::String(text) => text_to_ansi(text, conf, c, output),

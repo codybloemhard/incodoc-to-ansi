@@ -169,8 +169,8 @@ bbbbb
 fn main() {
     // let doc = parse(REF_DOC).unwrap();
     // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/linux-rice/README.md").unwrap());
-    // let doc = parse_md_to_incodoc(INPUT);
-    let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
+    let doc = parse_md_to_incodoc(INPUT);
+    // let doc = parse_md_to_incodoc(&simpleio::read_file_into_string("/home/cody/git/incodoc/README.md").unwrap());
 
     // let mut output = String::new();
     // doc_out(&doc, &mut output);
@@ -182,28 +182,54 @@ fn main() {
         nav: NavConfig {
             link_indent: 3,
             sub_indent: 3,
+            description_ansi_mod: AnsiMod {
+                fg: None,
+                bg: None,
+                fx: Some(vec![FxMod::Italic]),
+            },
+            link: LinkConfig {
+                ansi_mod: AnsiMod {
+                    fg: Some(ColMod::Blue),
+                    bg: None,
+                    fx: None,
+                },
+            },
             pre_description_mns: 0,
             post_description_ns: 0,
             pre_link_mns: 0,
         },
-        section: SectionConfig {
-            paragraph_indent: 2,
-            section_indent: 2,
-            pre_item_mns: 0,
-        },
         headed_section: HeadedSectionConfig {
-            pre_heading_mns: 1,
-            post_heading_ns: 0,
-        },
-        heading: HeadingConfig {
-            ansi_mod: AnsiMod {
-                fg: None,
-                bg: Some(ColMod::Black),
-                fx: Some(vec![FxMod::Bold]),
+            heading: HeadingConfig {
+                pre_heading_mns: 1,
+                post_heading_ns: 0,
+                ansi_mod: AnsiMod {
+                    fg: None,
+                    bg: Some(ColMod::Black),
+                    fx: Some(vec![FxMod::Bold]),
+                },
+            },
+            section: SectionConfig {
+                paragraph_indent: 2,
+                section_indent: 2,
+                pre_item_mns: 0,
             },
         },
         blockquote: BlockquoteConfig {
             pre_quote_mns: 0,
+            heading: HeadingConfig {
+                pre_heading_mns: 0,
+                post_heading_ns: 0,
+                ansi_mod: AnsiMod {
+                    fg: None,
+                    bg: None,
+                    fx: Some(vec![FxMod::Italic]),
+                },
+            },
+            section: SectionConfig {
+                paragraph_indent: 0,
+                section_indent: 0,
+                pre_item_mns: 0,
+            },
         },
         code_block: CodeBlockConfig {
             indent: 0,
