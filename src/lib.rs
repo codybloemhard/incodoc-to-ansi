@@ -190,11 +190,17 @@ pub fn blockquote_to_ansi(section: &Section, conf: &Config, c: &mut Context, out
         .build();
     let mut row = Row::empty();
     let mut temp = String::new();
+    let mut tc = Context {
+        width: c.width - c.indentation - c.indented,
+        ps: ParStatus::New(1000),
+        ..Default::default()
+    };
     if section.tags.contains("blockquote-typed") {
-        heading_to_ansi(&section.heading, &conf.blockquote.heading, conf, c, &mut temp);
-        newline(c, &mut temp);
+        newlines(conf.blockquote.heading.pre_heading_mns, &mut tc, &mut temp);
+        heading_to_ansi(&section.heading, &conf.blockquote.heading, conf, &mut tc, &mut temp);
+        newlines(conf.blockquote.heading.post_heading_ns + 1, &mut tc, &mut temp);
     }
-    section_body_to_ansi(section, &conf.blockquote.section, conf, c, &mut temp);
+    section_body_to_ansi(section, &conf.blockquote.section, conf, &mut tc, &mut temp);
     row.add_cell(TableCell::new(temp));
     table.add_row(row);
     let raw_table = table.render();

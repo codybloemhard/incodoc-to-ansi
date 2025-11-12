@@ -215,10 +215,10 @@ fn main() {
             },
         },
         blockquote: BlockquoteConfig {
-            pre_quote_mns: 0,
+            pre_quote_mns: 1,
             heading: HeadingConfig {
                 pre_heading_mns: 0,
-                post_heading_ns: 0,
+                post_heading_ns: 1,
                 ansi_mod: AnsiMod {
                     fg: None,
                     bg: None,
